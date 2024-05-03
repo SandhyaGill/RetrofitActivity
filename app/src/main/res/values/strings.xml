@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">RetrofitActivity</string>
+    <string name="id">Id</string>
+    <string name="get_api">Get Api</string>
+    <string name="single">Single</string>
+    <string name="name">Name</string>
+    <string name="email">Email</string>
+    <string name="male">Male</string>
+    <string name="female">Female</string>
+    <string name="status">Status</string>
+    <string name="post">Post</string>
+    <string name="enter_id">Enter Id</string>
+    <string name="enter_name">Enter Name</string>
+    <string name="enter_email">Enter Email</string>
+</resources>
