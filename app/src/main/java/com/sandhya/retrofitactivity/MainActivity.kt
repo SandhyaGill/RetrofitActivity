@@ -15,11 +15,33 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
+import retrofit2.http.Tag
+import java.net.Authenticator
 
 interface RetrofitInterface{
     @GET("users")
     fun getApiResponse() : Call<GetApiResponse>
+
+    @GET("users/{id}")
+    fun getSingleUserApi(@Path("id") string: String) : Call<GetApiResponseItem>
+
+    @POST("users")
+    @FormUrlEncoded
+    fun postUser(@Header("Authorization") authorization: String,
+                 @Field("email") email: String,
+                 @Field("name") name: String,
+                 @Field("gender") gender: String,
+                 @Field("status") status: String) : Call<GetApiResponseItem>
+
+    @GET
+    fun getUserApi(@Query())
 }
 
 class MainActivity : AppCompatActivity() {
@@ -27,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var adapter: RetrofitAdapter
     var apiList = arrayListOf <GetApiResponseItem>()
     var retrofit : Retrofit? = null
+    var apiInterface : RetrofitInterface? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -40,7 +63,8 @@ class MainActivity : AppCompatActivity() {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
-        var apiInterface = retrofit?.create(RetrofitInterface::class.java)
+        apiInterface = retrofit?.create(RetrofitInterface::class.java)
+
         binding.btnGetApi.setOnClickListener {
             apiInterface?.getApiResponse()?.enqueue(object : Callback<GetApiResponse> {
                 override fun onResponse(
@@ -61,22 +85,59 @@ class MainActivity : AppCompatActivity() {
                 }
             })
         }
+        binding.btnSingle.setOnClickListener {
+            apiInterface?.getSingleUserApi("2322070")?.enqueue(object: Callback<GetApiResponseItem>{
+                override fun onResponse(
+                    call: Call<GetApiResponseItem>,
+                    response: Response<GetApiResponseItem>
+                ) {
+                    Log.e("Tag","single item ${response.body()}")
+                    (response.body() as? GetApiResponseItem)?.let { it1 -> apiList.add(it1) }
+                    adapter.notifyDataSetChanged()
+                }
+
+                override fun onFailure(call: Call<GetApiResponseItem>, t: Throwable) {
+                }
+            })
+
+        }
         binding.fab.setOnClickListener {
             var dialog = Dialog(this)
             var dialogItemBinding = DialogItemBinding.inflate(layoutInflater)
             dialog.setContentView(dialogItemBinding.root)
 
             dialogItemBinding.btnPost.setOnClickListener {
-                if (dialogItemBinding.tietId.text.toString().isNullOrEmpty()){
-                    dialogItemBinding.tilId.error = resources.getString(R.string.enter_id)
-                }else if (dialogItemBinding.tierName.text.toString().isNullOrEmpty()){
+                if (dialogItemBinding.tierName.text.toString().isNullOrEmpty()){
                     dialogItemBinding.tilName.error = resources.getString(R.string.enter_name)
-                }else if (dialogItemBinding.tierEmail.text.toString().isNullOrEmpty()){
+                }else if (dialogItemBinding.tierEmail.text.toString().isNullOrEmpty()) {
                     dialogItemBinding.tilEmail.error = resources.getString(R.string.enter_email)
-                } else if (dialogItemBinding.radioGroup.checkedRadioButtonId == -1){
-                    Toast.makeText(this,"Please select your gender", Toast.LENGTH_SHORT).show()
+//                } else if (dialogItemBinding.radioGroup.checkedRadioButtonId == -1){
+//                    Toast.makeText(this,"Please select your gender", Toast.LENGTH_SHORT).show()
+//                }
                 }else {
+                    var selectGender = if(dialogItemBinding.rbMale.isSelected)
+                        "Male" else "Female"
+                    var isActive = if (dialogItemBinding.cbStatus.isChecked)
+                        "active" else "inactive"
+                    apiInterface?.postUser("Bearer 5d403abd1182e85b92e5d7fb92d747b8f68200ef9a6b0992e0a780976f25b41a",
+                        dialogItemBinding.tierEmail.text.toString(),
+                        dialogItemBinding.tierName.text.toString(),
+                        selectGender,
+                        isActive)?.enqueue(object : Callback<GetApiResponseItem>{
+                        override fun onResponse(
+                            call: Call<GetApiResponseItem>,
+                            response: Response<GetApiResponseItem>
+                        ) {
+                            Log.e("Tag","response body ${response.body()} ")
+//                            Log.e("Tag","response error body ${response.errorBody()} ")
+                            if (response.isSuccessful)
+                                Toast.makeText(this@MainActivity,"User Added Successfully",Toast.LENGTH_SHORT).show()
+                        }
 
+                        override fun onFailure(call: Call<GetApiResponseItem>, t: Throwable) {
+                            Log.e("TAG", "in failure ${t.message}")
+                        }
+                    })
                     dialog.dismiss()
                 }
             }
