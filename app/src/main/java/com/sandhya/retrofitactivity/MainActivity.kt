@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.RadioButton
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.sandhya.retrofitactivity.databinding.ActivityMainBinding
 import com.sandhya.retrofitactivity.databinding.DialogItemBinding
 import retrofit2.Call
@@ -23,6 +24,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import retrofit2.http.Tag
+import retrofit2.http.Url
 import java.net.Authenticator
 
 interface RetrofitInterface{
@@ -40,8 +42,10 @@ interface RetrofitInterface{
                  @Field("gender") gender: String,
                  @Field("status") status: String) : Call<GetApiResponseItem>
 
-    @GET
-    fun getUserApi(@Query())
+    @GET("users")
+    fun getUsersPerPage(
+        @Query("page") page: Int,
+        @Query("per_page") perpage: Int) : Call<GetApiResponse>
 }
 
 class MainActivity : AppCompatActivity() {
@@ -50,6 +54,8 @@ class MainActivity : AppCompatActivity() {
     var apiList = arrayListOf <GetApiResponseItem>()
     var retrofit : Retrofit? = null
     var apiInterface : RetrofitInterface? = null
+    var page = 0
+    var perPageQuery = 10
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -85,6 +91,7 @@ class MainActivity : AppCompatActivity() {
                 }
             })
         }
+
         binding.btnSingle.setOnClickListener {
             apiInterface?.getSingleUserApi("2322070")?.enqueue(object: Callback<GetApiResponseItem>{
                 override fun onResponse(
@@ -101,6 +108,28 @@ class MainActivity : AppCompatActivity() {
             })
 
         }
+
+        binding.btnPagination.setOnClickListener {
+            page = 0
+            hitPaginationApi()
+        }
+        binding.recyclerView.addOnScrollListener(object: RecyclerView.OnScrollListener(){
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+
+                Log.e("Tag","In Scroll")
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition()
+                val totalItemCount = layoutManager.itemCount
+                if (lastVisibleItemPosition == totalItemCount - 1 ) {
+                    Log.e("Tag","last Item ${lastVisibleItemPosition}")
+                    Log.e("Tag","total Item count ${totalItemCount}")
+                    page++
+                    hitPaginationApi()
+
+                }
+
+            }
+        })
         binding.fab.setOnClickListener {
             var dialog = Dialog(this)
             var dialogItemBinding = DialogItemBinding.inflate(layoutInflater)
@@ -131,6 +160,8 @@ class MainActivity : AppCompatActivity() {
                             Log.e("Tag","response body ${response.body()} ")
 //                            Log.e("Tag","response error body ${response.errorBody()} ")
                             if (response.isSuccessful)
+                                apiList.add(response.body() as GetApiResponseItem)
+                                adapter.notifyDataSetChanged()
                                 Toast.makeText(this@MainActivity,"User Added Successfully",Toast.LENGTH_SHORT).show()
                         }
 
@@ -148,5 +179,23 @@ class MainActivity : AppCompatActivity() {
             dialog.show()
         }
 
+    }
+
+    private fun hitPaginationApi() {
+        apiInterface?.getUsersPerPage(page, perPageQuery)?.enqueue(object: Callback<GetApiResponse>{
+            override fun onResponse(
+                call: Call<GetApiResponse>,
+                response: Response<GetApiResponse>
+            ) {
+                Log.e("Tag","Pagination response ${response.body()}")
+                var response = response.body()
+                apiList.addAll(response as ArrayList<GetApiResponseItem>)
+                adapter.notifyDataSetChanged()
+
+            }
+
+            override fun onFailure(call: Call<GetApiResponse>, t: Throwable) {
+            }
+        })
     }
 }
