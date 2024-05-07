@@ -4,6 +4,7 @@ import android.app.Dialog
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioButton
 import android.widget.Toast
@@ -119,15 +120,15 @@ class MainActivity : AppCompatActivity() {
                 Log.e("Tag","In Scroll")
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                 val lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition()
-                val totalItemCount = layoutManager.itemCount
-                if (lastVisibleItemPosition == totalItemCount - 1 ) {
-                    Log.e("Tag","last Item ${lastVisibleItemPosition}")
-                    Log.e("Tag","total Item count ${totalItemCount}")
+                Log.e("Tag", "last Item ${lastVisibleItemPosition} ${apiList.size}")
+
+                if (lastVisibleItemPosition == apiList.size - 1) {
+                    binding.progressBar.visibility = View.VISIBLE
                     page++
                     hitPaginationApi()
 
-                }
 
+                }
             }
         })
         binding.fab.setOnClickListener {
@@ -182,6 +183,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun hitPaginationApi() {
+
         apiInterface?.getUsersPerPage(page, perPageQuery)?.enqueue(object: Callback<GetApiResponse>{
             override fun onResponse(
                 call: Call<GetApiResponse>,
@@ -189,6 +191,7 @@ class MainActivity : AppCompatActivity() {
             ) {
                 Log.e("Tag","Pagination response ${response.body()}")
                 var response = response.body()
+                binding.progressBar.visibility = View.GONE
                 apiList.addAll(response as ArrayList<GetApiResponseItem>)
                 adapter.notifyDataSetChanged()
 
